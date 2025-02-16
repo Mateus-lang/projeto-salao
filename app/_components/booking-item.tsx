@@ -1,3 +1,5 @@
+"use client"
+
 import { Prisma } from "@prisma/client"
 import { Avatar, AvatarImage } from "./ui/avatar"
 import { Badge } from "./ui/badge"
@@ -6,13 +8,30 @@ import { format, isFuture } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import {
   Sheet,
+  SheetClose,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "./ui/sheet"
 import Image from "next/image"
 import PhoneItem from "./phone-item"
+import { Button } from "./ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog"
+import { AlertDialogTrigger } from "@radix-ui/react-alert-dialog"
+import { deleteBooking } from "../_actions/delete-booking"
+import { toast } from "sonner"
+import { useState } from "react"
 
 interface BookingItemProps {
   booking: Prisma.BookingGetPayload<{
@@ -27,12 +46,27 @@ interface BookingItemProps {
 }
 //TODO: receber agendamento como prop
 const BookingItem = ({ booking }: BookingItemProps) => {
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
   const {
     service: { barbershop },
   } = booking
   const isConfirmed = isFuture(booking.date)
+  const handleCancelBooking = async () => {
+    try {
+      await deleteBooking(booking.id)
+      setIsSheetOpen(false)
+      toast.success("Reserva cancelada com sucesso!")
+    } catch (error) {
+      console.error(error)
+      toast.error("Erro ao cancelar reserva. Tente novamente.")
+    }
+  }
+
+  const handleSheetOpenChange = (isOpen: boolean) => {
+    setIsSheetOpen(isOpen)
+  }
   return (
-    <Sheet>
+    <Sheet open={isSheetOpen} onOpenChange={handleSheetOpenChange}>
       <SheetTrigger className="w-full">
         <Card className="min-w-[80%]">
           <CardContent className="flex justify-between p-0">
@@ -68,7 +102,7 @@ const BookingItem = ({ booking }: BookingItemProps) => {
           </CardContent>
         </Card>
       </SheetTrigger>
-      <SheetContent className="w-[90%]">
+      <SheetContent className="w-[80%]">
         <SheetHeader>
           <SheetTitle className="text-left">
             Informações do agendamento
@@ -144,6 +178,51 @@ const BookingItem = ({ booking }: BookingItemProps) => {
             ))}
           </div>
         </div>
+        <SheetFooter className="mt-6">
+          <div className="flex items-center gap-3">
+            <SheetClose asChild>
+              <Button variant="outline" className="w-full">
+                Voltar
+              </Button>
+            </SheetClose>
+            {isConfirmed && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full">
+                    Cancelar Reserva
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="w-[80%] rounded-xl">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Voce tem certeza que deseja cancelar a reserva?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. Ao cancelar a reserva,
+                      você PERDERÁ o horário agendado.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="flex-row justify-between gap-3">
+                    <AlertDialogCancel className="m-0 w-[50%] rounded-xl">
+                      Voltar
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      asChild
+                      className="m-0 w-[50%] rounded-xl bg-red-600 hover:bg-red-500"
+                    >
+                      <Button
+                        onClick={handleCancelBooking}
+                        variant="destructive"
+                      >
+                        Cancelar Reserva
+                      </Button>
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   )
