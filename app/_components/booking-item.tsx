@@ -67,7 +67,7 @@ const BookingItem = ({ booking }: BookingItemProps) => {
   }
   return (
     <Sheet open={isSheetOpen} onOpenChange={handleSheetOpenChange}>
-      <SheetTrigger className="w-full">
+      <SheetTrigger className="w-full min-w-[80%]">
         <Card className="min-w-[80%]">
           <CardContent className="flex justify-between p-0">
             {/* ESQUERDA */}
@@ -78,7 +78,9 @@ const BookingItem = ({ booking }: BookingItemProps) => {
               >
                 {isConfirmed ? "Confirmado" : "Finalizado"}
               </Badge>
-              <h3 className="font-semibold">{booking.service.name}</h3>
+              <h3 className="text-left font-semibold">
+                {booking.service.name}
+              </h3>
 
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
