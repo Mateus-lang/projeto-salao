@@ -178,7 +178,7 @@ const ServiceItem = ({ service, barbershop }: ServiceItemProps) => {
             <p className="text-sm text-gray-400">{service.description}</p>
             {/* PREÇO E BOTÃO */}
             <div className="flex items-center justify-between">
-              <p className="text-sm font-bold text-primary">
+              <p className="text-xs font-bold">
                 {Intl.NumberFormat("pt-BR", {
                   style: "currency",
                   currency: "BRL",
