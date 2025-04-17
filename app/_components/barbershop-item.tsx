@@ -3,7 +3,7 @@ import { Card, CardContent } from "./ui/card"
 import Image from "next/image"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
-import { StarIcon } from "lucide-react"
+import { CrownIcon } from "lucide-react"
 import Link from "next/link"
 
 interface BarbershopItemProps {
@@ -26,7 +26,7 @@ const BarbershopItem = ({ barbershop }: BarbershopItemProps) => {
             className="absolute left-2 top-2 space-x-1"
             variant="secondary"
           >
-            <StarIcon size={12} className="fill-primary text-primary" />
+            <CrownIcon size={12} className="fill-white text-white" />
             <p className="text-xs font-semibold">5.0</p>
           </Badge>
         </div>

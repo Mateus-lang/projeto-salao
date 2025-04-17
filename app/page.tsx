@@ -30,7 +30,7 @@ const Home = async () => {
       <Header />
       <div className="p-5">
         <h2 className="text-xl font-bold">
-          Olá, {session?.user ? session.user.name : "Bem Vindo!"}
+          Olá, {session?.user ? session.user.name : "Preta Doce!"}
         </h2>
 
         <p>
@@ -71,7 +71,7 @@ const Home = async () => {
         </div>
 
         {/* IMAGEM */}
-        <div className="relative mt-6 h-[150px] w-full">
+        <div className="relative mt-6 h-[180px] w-full">
           <Image
             alt="agende com os melhores"
             src="/banner-01.png"
