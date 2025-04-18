@@ -23,7 +23,8 @@ import { getBookings } from "../_actions/get-bookings"
 import { Dialog, DialogContent } from "./ui/dialog"
 import SignInDialog from "./sign-in-dialog"
 import BookingSummary from "./booking-summary"
-import { useRouter } from "next/navigation"
+import { loadStripe } from "@stripe/stripe-js"
+import { createCheckoutSession } from "../_actions/stripe-handler"
 
 interface ServiceItemProps {
   service: BarbershopService
@@ -75,12 +76,9 @@ const getTimeList = ({ bookings, selectedDay }: GetTimeListProps) => {
 
 const ServiceItem = ({ service, barbershop }: ServiceItemProps) => {
   const { data } = useSession()
-  const router = useRouter()
   const [signInDialogIsOpen, setSignInDialogIsOpen] = useState(false)
   const [selectedDay, setSelectedDay] = useState<Date | undefined>(undefined)
-  const [selectedTime, setSelectedTime] = useState<string | undefined>(
-    undefined,
-  )
+  const [selectedTime, setSelectedTime] = useState<string | undefined>()
 
   const [daybookings, setDayBookings] = useState<Booking[]>([])
   const [bookingSheetIsOpen, setBookingSheetIsOpen] = useState(false)
@@ -133,21 +131,55 @@ const ServiceItem = ({ service, barbershop }: ServiceItemProps) => {
 
   const handleCreateBooking = async () => {
     try {
-      if (!selectedDate) return
+      if (!selectedDate) {
+        toast.error("Selecione uma data e horário!")
+        return
+      }
+
+      // Cria a reserva primeiro
       await createBooking({
         serviceId: service.id,
         date: selectedDate,
       })
+
       handleBookingSheetOpenChange()
-      toast.success("Reserva criada com sucesso!", {
-        action: {
-          label: "Ver agendamentos",
-          onClick: () => router.push("/bookings"),
-        },
+
+      // Usa a nova função para criar a sessão do Stripe
+      const result = await createCheckoutSession(service)
+
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+
+      if (!result.sessionId) {
+        toast.error("Erro ao criar sessão de pagamento")
+        return
+      }
+
+      if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
+        toast.error("Chave pública do Stripe não configurada")
+        return
+      }
+
+      const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY)
+
+      if (!stripe) {
+        toast.error("Falha ao carregar Stripe")
+        return
+      }
+
+      // Redireciona para o checkout com a session ID
+      const { error } = await stripe.redirectToCheckout({
+        sessionId: result.sessionId,
       })
+
+      if (error) {
+        toast.error(error.message || "Erro ao redirecionar para o checkout")
+      }
     } catch (error) {
-      console.error(error)
-      toast.error("Erro ao criar reserva!")
+      console.error("Erro ao processar pagamento:", error)
+      toast.error("Falha ao processar pagamento. Tente novamente.")
     }
   }
 
