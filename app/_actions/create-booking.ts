@@ -10,14 +10,31 @@ interface CreateBookingParams {
   date: Date
 }
 
-export const createBooking = async (params: CreateBookingParams) => {
-  const user = await getServerSession(authOptions)
-  if (!user) {
-    throw new Error("Usuário não autenticado")
+export async function createBooking({ serviceId, date }: CreateBookingParams) {
+  const session = await getServerSession(authOptions)
+
+  if (!session?.user?.email) {
+    throw new Error("Usuário não autenticado ou sem email")
   }
+
+  // Buscar o usuário pelo email para obter o ID
+  const user = await db.user.findUnique({
+    where: {
+      email: session.user.email,
+    },
+  })
+
+  if (!user) {
+    throw new Error("Usuário não encontrado")
+  }
+
   await db.booking.create({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data: { ...params, userId: (user.user as any).id },
+    data: {
+      serviceId,
+      date,
+      userId: user.id, // Usar o ID do usuário
+      status: "PAYMENT_CONFIRMED",
+    },
   })
   revalidatePath("/barbershops/[id]")
   revalidatePath("/bookings")

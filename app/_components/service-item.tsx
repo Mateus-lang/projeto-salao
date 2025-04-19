@@ -17,14 +17,12 @@ import { Calendar } from "./ui/calendar"
 import { useEffect, useMemo, useState } from "react"
 import { isPast, isToday, set } from "date-fns"
 import { useSession } from "next-auth/react"
-import { createBooking } from "../_actions/create-booking"
 import { toast } from "sonner"
 import { getBookings } from "../_actions/get-bookings"
 import { Dialog, DialogContent } from "./ui/dialog"
 import SignInDialog from "./sign-in-dialog"
 import BookingSummary from "./booking-summary"
 import { loadStripe } from "@stripe/stripe-js"
-import { createCheckoutSession } from "../_actions/stripe-handler"
 
 interface ServiceItemProps {
   service: BarbershopService
@@ -136,50 +134,44 @@ const ServiceItem = ({ service, barbershop }: ServiceItemProps) => {
         return
       }
 
-      // Cria a reserva primeiro
-      await createBooking({
-        serviceId: service.id,
-        date: selectedDate,
-      })
-
+      // Fechar o modal antes de processar pagamento
       handleBookingSheetOpenChange()
 
-      // Usa a nova função para criar a sessão do Stripe
-      const result = await createCheckoutSession(service)
-
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-
-      if (!result.sessionId) {
-        toast.error("Erro ao criar sessão de pagamento")
-        return
-      }
-
-      if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
-        toast.error("Chave pública do Stripe não configurada")
-        return
-      }
-
-      const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY)
-
-      if (!stripe) {
-        toast.error("Falha ao carregar Stripe")
-        return
-      }
-
-      // Redireciona para o checkout com a session ID
-      const { error } = await stripe.redirectToCheckout({
-        sessionId: result.sessionId,
+      // Chamar API do Stripe com os dados da reserva
+      const response = await fetch("/api/stripe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          service,
+          selectedDate: selectedDate.toISOString(),
+        }),
       })
 
-      if (error) {
-        toast.error(error.message || "Erro ao redirecionar para o checkout")
+      if (!response.ok) {
+        throw new Error("Falha na resposta da API do Stripe")
       }
+
+      const { sessionId, error } = await response.json()
+
+      if (error || !sessionId) {
+        throw new Error(error || "Sessão não criada")
+      }
+
+      // Carregar Stripe e redirecionar para página de pagamento
+      const stripe = await loadStripe(
+        process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY || "",
+      )
+
+      if (!stripe) {
+        throw new Error("Falha ao carregar Stripe")
+      }
+
+      await stripe.redirectToCheckout({ sessionId })
     } catch (error) {
-      console.error("Erro ao processar pagamento:", error)
-      toast.error("Falha ao processar pagamento. Tente novamente.")
+      console.error("Erro no processo de pagamento:", error)
+      toast.error("Erro ao processar pagamento")
     }
   }
 
