@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createBooking } from "../_actions/create-booking"
 import { toast } from "sonner"
 
-export default function SuccessPage() {
+function SuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isProcessing, setIsProcessing] = useState(true)
@@ -97,5 +97,23 @@ export default function SuccessPage() {
         <p>Redirecionando para a página inicial...</p>
       )}
     </div>
+  )
+}
+
+// Componente de fallback para exibir durante o carregamento
+function SuccessLoading() {
+  return (
+    <div className="container flex min-h-[70vh] flex-col items-center justify-center py-10">
+      <h1 className="mb-4 text-2xl font-bold">Carregando...</h1>
+      <p>Aguarde um momento enquanto processamos sua solicitação.</p>
+    </div>
+  )
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={<SuccessLoading />}>
+      <SuccessContent />
+    </Suspense>
   )
 }
